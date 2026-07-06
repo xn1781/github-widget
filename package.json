@@ -1,0 +1,14 @@
+{
+  "name": "github-widget",
+  "version": "1.0.0",
+  "description": "github tracker for discord's widget",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "xn1781",
+  "license": "ISC"
+}

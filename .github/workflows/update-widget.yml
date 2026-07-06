@@ -1,0 +1,41 @@
+name: Update Discord Widget
+
+on:
+  # Run automatically on a schedule. */30 = every 30 minutes.
+  # GitHub may delay scheduled runs during busy periods — that's normal.
+  # If you change this, update UPDATE_LABEL / CONFIG.updateLabel to match.
+  schedule:
+    - cron: "*/30 * * * *"
+
+  # Let you trigger a run by hand from the Actions tab.
+  workflow_dispatch:
+
+# Avoid overlapping runs stepping on each other.
+concurrency:
+  group: update-widget
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Update widget
+        run: node index.js
+        env:
+          # Who to track (defaults to CONFIG.username in index.js if unset).
+          GH_USERNAME: ${{ vars.GH_USERNAME }}
+          # Personal Access Token (classic, read:user scope) — NOT the default
+          # GITHUB_TOKEN, which can't read the contribution graph.
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # Discord app identity credentials.
+          DISCORD_APP_ID: ${{ secrets.DISCORD_APP_ID }}
+          DISCORD_USER_ID: ${{ secrets.DISCORD_USER_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
