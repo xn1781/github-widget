@@ -51,7 +51,7 @@ const CONFIG = {
 
   // Small text shown on the widget so viewers know how fresh it is.
   // Keep this in sync with the cron schedule in the workflow.
-  updateLabel: process.env.UPDATE_LABEL || "updates every 30 min",
+  updateLabel: process.env.UPDATE_LABEL || "updates every hour",
 
   // GitHub Personal Access Token (classic, read-only `read:user` scope is
   // enough). Needed for the contribution graph / streak query. In GitHub
@@ -67,48 +67,89 @@ const CONFIG = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  ICONS — change any emoji here to restyle the widget                */
-/*  Find codepoints at https://emojipedia.org (use the hex, no U+).    */
+/*  ICONS                                                              */
+/*  Every icon is one EXPRESSION of your character. Drop image/gif     */
+/*  files in assets/icons/ and they're used automatically; until then  */
+/*  each falls back to an emoji so nothing breaks.                     */
+/*                                                                     */
+/*  Expression files (put in assets/icons/, .gif or .png):            */
+/*    neutral   — resting / default                                    */
+/*    sleepy    — asleep (streak broken)                               */
+/*    tired     — worn out (no commits yet today)                      */
+/*    fired     — fired up (on a streak)                               */
+/*    hyper     — hyped / energetic (shipping a lot)                   */
+/*    proud     — proud / smug (stars, milestones)                     */
+/*    celebrate — celebrating (big milestones)                         */
 /* ------------------------------------------------------------------ */
 
-// Renders any emoji as a 72×72 PNG. This is what makes icons swappable:
-// just change the emoji codepoint.
+// Renders any emoji as a 72×72 PNG (used as fallback before you add art).
 const emoji = (code) =>
   `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/${code}.png`;
 
+// Build a raw-GitHub URL for a repo file (when running in Actions), with a
+// content hash `h` and per-run buster `v` so Discord always refetches.
+// Returns null when not in Actions or the file doesn't exist.
+function rawAsset(relPath) {
+  const abs = path.join(__dirname, relPath);
+  const repo = process.env.GITHUB_REPOSITORY; // "owner/repo", set by Actions
+  const ref = process.env.GITHUB_REF_NAME || "main";
+  if (!repo || !fs.existsSync(abs)) return null;
+  const hash = crypto
+    .createHash("md5")
+    .update(fs.readFileSync(abs))
+    .digest("hex")
+    .slice(0, 10);
+  const bust = process.env.GITHUB_RUN_ID || Date.now();
+  return `https://raw.githubusercontent.com/${repo}/${ref}/${relPath.replace(
+    /\\/g,
+    "/"
+  )}?h=${hash}&v=${bust}`;
+}
+
+// One expression → prefer assets/icons/<name>.gif, then .png, then the emoji.
+function expr(name, fallbackCode) {
+  return (
+    rawAsset(`assets/icons/${name}.gif`) ||
+    rawAsset(`assets/icons/${name}.png`) ||
+    emoji(fallbackCode)
+  );
+}
+
+// Each ICON is an expression of the SAME character. Several widget states reuse
+// the same expression (e.g. fire/volcano/comet all = "fired"), so you only need
+// ~7 gifs. Fallback emoji kept per-state so it still looks right before art.
 const ICON = {
-  // top-of-widget logo (falls back to your GitHub avatar at runtime)
-  github: emoji("1f419"), // 🐙
+  github: expr("neutral", "1f419"),
 
-  // streak
-  sleep: emoji("1f634"), // 😴  streak broken
-  fire: emoji("1f525"), // 🔥  on a streak
-  volcano: emoji("1f30b"), // 🌋  30+ days
-  comet: emoji("2604"), //  ☄️  100+ days
+  // streak: sleeping → fired up (hotter tiers reuse "fired")
+  sleep: expr("sleepy", "1f634"),
+  fire: expr("fired", "1f525"),
+  volcano: expr("fired", "1f30b"),
+  comet: expr("fired", "2604"),
 
-  // today
-  coffee: emoji("2615"), // ☕  nothing yet today
-  bolt: emoji("26a1"), // ⚡  shipped today
-  rocket: emoji("1f680"), // 🚀  10+ today / 1k+ year
+  // today: tired → hyper
+  coffee: expr("tired", "2615"),
+  bolt: expr("hyper", "26a1"),
+  rocket: expr("hyper", "1f680"),
 
   // year
-  chart: emoji("1f4c8"), // 📈
-  ufo: emoji("1f6f8"), // 🛸  5k+
+  chart: expr("neutral", "1f4c8"),
+  ufo: expr("hyper", "1f6f8"),
 
-  // stars
-  star: emoji("2b50"), // ⭐
-  glowstar: emoji("1f31f"), // 🌟  100+
-  trophy: emoji("1f3c6"), // 🏆  1k+
+  // stars: proud → celebrate
+  star: expr("proud", "2b50"),
+  glowstar: expr("proud", "1f31f"),
+  trophy: expr("celebrate", "1f3c6"),
 
   // followers
-  people: emoji("1f465"), // 👥
-  party: emoji("1f389"), // 🎉  100+
-  crown: emoji("1f451"), // 👑  1k+
+  people: expr("neutral", "1f465"),
+  party: expr("celebrate", "1f389"),
+  crown: expr("celebrate", "1f451"),
 
   // repos
-  box: emoji("1f4e6"), // 📦
-  books: emoji("1f4da"), // 📚  25+
-  temple: emoji("1f3db"), // 🏛️  50+
+  box: expr("neutral", "1f4e6"),
+  books: expr("neutral", "1f4da"),
+  temple: expr("proud", "1f3db"),
 };
 
 /* ------------------------------------------------------------------ */
@@ -155,23 +196,7 @@ function reframeBanner(url) {
 //   3. fallback: reframe the live avatar through the image proxy
 function resolveLogo(avatarUrl) {
   if (CONFIG.logoUrl) return CONFIG.logoUrl;
-
-  const local = path.join(__dirname, "assets", "logo.png");
-  const repo = process.env.GITHUB_REPOSITORY; // "owner/repo", set by Actions
-  const ref = process.env.GITHUB_REF_NAME || "main";
-  if (repo && fs.existsSync(local)) {
-    const hash = crypto
-      .createHash("md5")
-      .update(fs.readFileSync(local))
-      .digest("hex")
-      .slice(0, 10);
-    // `h` = content hash (identity); `v` = per-run buster so Discord's image
-    // proxy always refetches instead of serving a stale/cached response.
-    const bust = process.env.GITHUB_RUN_ID || Date.now();
-    return `https://raw.githubusercontent.com/${repo}/${ref}/assets/logo.png?h=${hash}&v=${bust}`;
-  }
-
-  return reframeBanner(avatarUrl || ICON.github);
+  return rawAsset("assets/logo.png") || reframeBanner(avatarUrl || ICON.github);
 }
 
 /* ------------------------------------------------------------------ */

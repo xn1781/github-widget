@@ -5,7 +5,7 @@ on:
   # GitHub may delay scheduled runs during busy periods — that's normal.
   # If you change this, update UPDATE_LABEL / CONFIG.updateLabel to match.
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "0 * * * *"
 
   # Let you trigger a run by hand from the Actions tab.
   workflow_dispatch:

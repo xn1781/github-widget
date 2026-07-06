@@ -1,5 +1,5 @@
 node_modules/
 .env
 
-# render previews (debug only)
-assets/_preview*.png
+# render/debug previews (never committed)
+assets/_*.png
