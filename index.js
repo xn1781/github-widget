@@ -165,7 +165,10 @@ function resolveLogo(avatarUrl) {
       .update(fs.readFileSync(local))
       .digest("hex")
       .slice(0, 10);
-    return `https://raw.githubusercontent.com/${repo}/${ref}/assets/logo.png?h=${hash}`;
+    // `h` = content hash (identity); `v` = per-run buster so Discord's image
+    // proxy always refetches instead of serving a stale/cached response.
+    const bust = process.env.GITHUB_RUN_ID || Date.now();
+    return `https://raw.githubusercontent.com/${repo}/${ref}/assets/logo.png?h=${hash}&v=${bust}`;
   }
 
   return reframeBanner(avatarUrl || ICON.github);
