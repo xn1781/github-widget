@@ -15,6 +15,10 @@ concurrency:
   group: update-widget
   cancel-in-progress: true
 
+# Allow the job to commit the freshly rendered logo back to the repo.
+permissions:
+  contents: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -29,6 +33,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Render logo
+        run: node render-logo.js
+        env:
+          GH_USERNAME: ${{ vars.GH_USERNAME }}
+
+      - name: Commit logo if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/logo.png
+          if git diff --staged --quiet; then
+            echo "Logo unchanged — nothing to commit."
+          else
+            git commit -m "chore: update widget logo [skip ci]"
+            git push
+          fi
 
       - name: Update widget
         run: node index.js

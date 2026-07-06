@@ -30,6 +30,22 @@ Want to track something else entirely? Edit the corresponding entry in
 `buildStats()` — return a `{ title, label, icon }` and it maps straight onto
 `statNTitle` / `statNLabel` / `statNLogo`.
 
+## The logo (circular fading pfp)
+
+The top banner is **rendered** by [render-logo.js](render-logo.js): it takes your
+GitHub avatar, cuts it into a circle, and fades it out into the card so it blends
+in instead of looking like a pasted-on square. The workflow runs the renderer,
+commits the result to `assets/logo.png` (only when it changes), and `index.js`
+points the widget's `logo` at that file's raw URL (with a content hash so Discord
+refetches only when the image actually changes).
+
+Tune the look in the `RENDER` block of [render-logo.js](render-logo.js) — circle
+position/size (`cx`, `cy`, `r`), edge softness (`coreStop`), and the left fade
+(`fadeFrom`, `fadeTo`). Re-run `node render-logo.js` to preview `assets/logo.png`.
+
+Prefer a completely custom image? Set the `LOGO_URL` env var to any URL and it's
+used as-is (skips rendering).
+
 ## Setup
 
 ### 1. Widget config field mapping
@@ -64,7 +80,9 @@ Without the Discord secrets the script does a **dry run** and just prints the
 payload — handy for previewing:
 
 ```bash
+npm install               # for the logo renderer
 cp .env.example .env      # fill in GH_TOKEN + GH_USERNAME
+node render-logo.js       # preview assets/logo.png
 node --env-file=.env index.js
 ```
 

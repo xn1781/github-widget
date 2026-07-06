@@ -10,5 +10,8 @@
     "node": ">=20"
   },
   "author": "xn1781",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.2"
+  }
 }

@@ -19,6 +19,10 @@
 
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+
 /* ------------------------------------------------------------------ */
 /*  CONFIG — edit these (or set them as environment variables/secrets) */
 /* ------------------------------------------------------------------ */
@@ -141,6 +145,30 @@ function reframeBanner(url) {
   if (b.fit === "cover") q.set("a", b.focus);
   else q.set("bg", b.bg);
   return `https://images.weserv.nl/?${q.toString()}`;
+}
+
+// Decide which URL to use for the top logo, in priority order:
+//   1. an explicit LOGO_URL override
+//   2. the pre-rendered circular banner committed at assets/logo.png (when
+//      running in Actions) — referenced by raw URL + a content hash so Discord
+//      only refetches when the image actually changes
+//   3. fallback: reframe the live avatar through the image proxy
+function resolveLogo(avatarUrl) {
+  if (CONFIG.logoUrl) return CONFIG.logoUrl;
+
+  const local = path.join(__dirname, "assets", "logo.png");
+  const repo = process.env.GITHUB_REPOSITORY; // "owner/repo", set by Actions
+  const ref = process.env.GITHUB_REF_NAME || "main";
+  if (repo && fs.existsSync(local)) {
+    const hash = crypto
+      .createHash("md5")
+      .update(fs.readFileSync(local))
+      .digest("hex")
+      .slice(0, 10);
+    return `https://raw.githubusercontent.com/${repo}/${ref}/assets/logo.png?h=${hash}`;
+  }
+
+  return reframeBanner(avatarUrl || ICON.github);
 }
 
 /* ------------------------------------------------------------------ */
@@ -323,7 +351,7 @@ function buildStats({ streaks, contribTotal, stars, followers, repos }) {
 
 function buildPayload(username, avatarUrl, stats) {
   const dynamic = [
-    imgField("logo", reframeBanner(CONFIG.logoUrl || avatarUrl || ICON.github)),
+    imgField("logo", resolveLogo(avatarUrl)),
     strField("tracking", `@${username}`),
     strField("updatesEvery", CONFIG.updateLabel),
   ];
