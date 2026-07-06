@@ -27,6 +27,24 @@ const CONFIG = {
   // GitHub user to track.
   username: process.env.GH_USERNAME || "xn1781",
 
+  // Top-of-widget banner image. Leave blank to use your GitHub avatar.
+  // This slot is rendered WIDE, so a landscape/banner image (e.g. ~600x240)
+  // looks far better than a square avatar. Drop any image URL here.
+  logoUrl: process.env.LOGO_URL || "",
+
+  // The logo slot is wide, so we reframe whatever image we send through a
+  // free image proxy (images.weserv.nl) to fit it nicely — no hosting needed.
+  banner: {
+    enabled: true,
+    width: 600,
+    height: 240,
+    // "cover"   = smart-fill the whole banner, auto-focus the subject
+    // "contain" = show the entire image, letterboxed on `bg` (no crop)
+    fit: "cover",
+    focus: "attention", // focal point for cover: attention | entropy | center | top …
+    bg: "0d1117", // background for contain (card's dark color)
+  },
+
   // Small text shown on the widget so viewers know how fresh it is.
   // Keep this in sync with the cron schedule in the workflow.
   updateLabel: process.env.UPDATE_LABEL || "updates every 30 min",
@@ -107,6 +125,23 @@ function pickIcon(value, base, tiers = []) {
 // Widget field constructors (see blog: type 1 = string, type 3 = image URL).
 const strField = (name, value) => ({ type: 1, name, value: String(value) });
 const imgField = (name, url) => ({ type: 3, name, value: { url } });
+
+// Reframe the logo image to fit the wide banner slot via a free image proxy,
+// so a square avatar doesn't get awkwardly cropped. Returns url unchanged if
+// banner reframing is disabled.
+function reframeBanner(url) {
+  const b = CONFIG.banner;
+  if (!b.enabled) return url;
+  const q = new URLSearchParams({
+    url: "ssl:" + url.replace(/^https?:\/\//, ""),
+    w: String(b.width),
+    h: String(b.height),
+    fit: b.fit,
+  });
+  if (b.fit === "cover") q.set("a", b.focus);
+  else q.set("bg", b.bg);
+  return `https://images.weserv.nl/?${q.toString()}`;
+}
 
 /* ------------------------------------------------------------------ */
 /*  GitHub data fetching                                               */
@@ -288,7 +323,7 @@ function buildStats({ streaks, contribTotal, stars, followers, repos }) {
 
 function buildPayload(username, avatarUrl, stats) {
   const dynamic = [
-    imgField("logo", avatarUrl || ICON.github),
+    imgField("logo", reframeBanner(CONFIG.logoUrl || avatarUrl || ICON.github)),
     strField("tracking", `@${username}`),
     strField("updatesEvery", CONFIG.updateLabel),
   ];
