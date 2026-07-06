@@ -15,16 +15,16 @@ const { createCanvas, loadImage } = require("@napi-rs/canvas");
 const USERNAME = process.env.GH_USERNAME || "xn1781";
 
 const RENDER = {
-  width: 600, // canvas size — matches the widget's wide logo slot (2.5:1)
-  height: 240,
-  cx: 470, // circle center X (near the right so it bleeds off the right edge)
-  cy: 40, // circle center Y (near the top so it bleeds off the top edge)
-  r: 175, // circle radius — big, so it reads as a large arc in the corner
+  width: 340, // near-square canvas so the widget can't shrink a wide frame
+  height: 300,
+  cx: 175, // circle center X
+  cy: 140, // circle center Y
+  r: 168, // big radius — the circle fills the frame and bleeds the edges
   // radial vignette: opaque out to `coreStop` of the radius, then fades to 0
-  coreStop: 0.72,
+  coreStop: 0.82,
   // horizontal fade so the left edge melts into the text area
-  fadeFrom: 250, // x where the left fade starts (fully transparent)
-  fadeTo: 430, // x where it's fully opaque
+  fadeFrom: 10, // x where the left fade starts (fully transparent)
+  fadeTo: 120, // x where it's fully opaque
 };
 
 async function fetchAvatarUrl(username) {
