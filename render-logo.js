@@ -17,14 +17,14 @@ const USERNAME = process.env.GH_USERNAME || "xn1781";
 const RENDER = {
   width: 600, // canvas size — matches the widget's wide logo slot (2.5:1)
   height: 240,
-  cx: 430, // circle center X (push right so it sits on the right side)
-  cy: 120, // circle center Y
-  r: 116, // circle radius (fits within the height)
+  cx: 470, // circle center X (near the right so it bleeds off the right edge)
+  cy: 40, // circle center Y (near the top so it bleeds off the top edge)
+  r: 175, // circle radius — big, so it reads as a large arc in the corner
   // radial vignette: opaque out to `coreStop` of the radius, then fades to 0
-  coreStop: 0.62,
+  coreStop: 0.72,
   // horizontal fade so the left edge melts into the text area
   fadeFrom: 250, // x where the left fade starts (fully transparent)
-  fadeTo: 400, // x where it's fully opaque
+  fadeTo: 430, // x where it's fully opaque
 };
 
 async function fetchAvatarUrl(username) {
